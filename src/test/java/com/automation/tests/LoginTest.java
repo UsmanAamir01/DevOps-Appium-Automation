@@ -6,35 +6,44 @@ import org.testng.annotations.Test;
 
 /**
  * Tests for the Login screen.
+ *
+ * Uses POM — no locators or WebElements appear in this class.
+ *
+ * Navigation chain for login via checkout:
+ *   CatalogPage → ProductDetailPage → addToCart → CartPage → proceedToCheckout → LoginPage
  */
 public class LoginTest extends BaseTest {
 
-    @Test(description = "Verify login screen is shown when proceeding to checkout")
-    public void testLoginPageDisplayed() {
-        // Navigate: Catalog → Product → Add to Cart → Cart → Proceed to Checkout → Login
-        CatalogPage catalog = new CatalogPage(driver);
+    private static final String VALID_USER = "bob@example.com";
+    private static final String VALID_PASS = "10203040";
+
+    /**
+     * Reusable helper: navigates through the cart flow to reach the Login screen.
+     */
+    private LoginPage navigateToLoginPage() {
+        CatalogPage catalog   = new CatalogPage(driver);
         ProductDetailPage detail = catalog.openFirstProduct();
         detail.addToCart();
         CartPage cart = detail.openCart();
-        LoginPage login = cart.proceedToCheckout();
+        return cart.proceedToCheckout();
+    }
 
-        Assert.assertTrue(login.isLoginDisplayed(), "Login page should be visible");
+    @Test(description = "Verify the login screen is shown when proceeding to checkout")
+    public void testLoginPageDisplayed() {
+        LoginPage loginPage = navigateToLoginPage();
+
+        Assert.assertTrue(loginPage.isLoginDisplayed(),
+                "Login page should be visible after proceeding to checkout");
         System.out.println("✓ Login page displayed successfully");
     }
 
-    @Test(description = "Verify user can log in with valid credentials")
+    @Test(description = "Verify user can log in with valid credentials and reach the checkout screen")
     public void testValidLogin() {
-        CatalogPage catalog = new CatalogPage(driver);
-        ProductDetailPage detail = catalog.openFirstProduct();
-        detail.addToCart();
-        CartPage cart = detail.openCart();
-        LoginPage login = cart.proceedToCheckout();
+        LoginPage loginPage = navigateToLoginPage();
+        CheckoutPage checkoutPage = loginPage.loginToCheckout(VALID_USER, VALID_PASS);
 
-        // bob@example.com / 10203040 are default demo credentials
-        CheckoutPage checkout = login.login("bob@example.com", "10203040");
-        Assert.assertTrue(checkout.isCheckoutDisplayed(),
+        Assert.assertTrue(checkoutPage.isPageLoaded(),
                 "Checkout page should be displayed after successful login");
         System.out.println("✓ Login successful — Checkout page reached");
     }
 }
-

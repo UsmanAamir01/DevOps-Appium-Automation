@@ -31,5 +31,10 @@
         </classes>
     </test>
 
-</suite>
+    <test name="End To End Tests">
+        <classes>
+            <class name="com.automation.tests.EndToEndTest"/>
+        </classes>
+    </test>
 
+</suite>

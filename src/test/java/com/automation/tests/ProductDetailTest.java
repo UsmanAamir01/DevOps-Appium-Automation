@@ -7,6 +7,9 @@ import org.testng.annotations.Test;
 
 /**
  * Tests for the Product Detail screen.
+ *
+ * Uses POM — no locators or WebElements appear in this class.
+ * Navigation chain: CatalogPage → ProductDetailPage.
  */
 public class ProductDetailTest extends BaseTest {
 
@@ -15,8 +18,9 @@ public class ProductDetailTest extends BaseTest {
         CatalogPage catalog = new CatalogPage(driver);
         ProductDetailPage detail = catalog.openFirstProduct();
 
+        Assert.assertTrue(detail.isPageLoaded(),
+                "Product detail page should be loaded after tapping a product");
         String name = detail.getProductName();
-        Assert.assertNotNull(name, "Product name should be visible on detail page");
         Assert.assertFalse(name.isEmpty(), "Product name should not be empty");
         System.out.println("✓ Product detail name: " + name);
     }
@@ -27,12 +31,12 @@ public class ProductDetailTest extends BaseTest {
         ProductDetailPage detail = catalog.openFirstProduct();
 
         String price = detail.getProductPrice();
-        Assert.assertNotNull(price, "Price should be visible");
-        Assert.assertTrue(price.contains("$"), "Price should contain dollar sign");
+        Assert.assertTrue(price.contains("$"),
+                "Price should contain a dollar sign, got: " + price);
         System.out.println("✓ Product price: " + price);
     }
 
-    @Test(description = "Verify user can add a product to the cart")
+    @Test(description = "Verify user can add a product to the cart from the detail screen")
     public void testAddProductToCart() {
         CatalogPage catalog = new CatalogPage(driver);
         ProductDetailPage detail = catalog.openFirstProduct();
@@ -41,4 +45,3 @@ public class ProductDetailTest extends BaseTest {
         System.out.println("✓ Product added to cart successfully");
     }
 }
-
