@@ -1,5 +1,5 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="MyDemoApp Test Suite" verbose="1">
+<suite name="MyDemoApp Test Suite" verbose="1" thread-count="1">
 
     <test name="Catalog Tests">
         <classes>
@@ -37,13 +37,13 @@
         </classes>
     </test>
 
-    <test name="Functional Test Cases 1 to 5">
+    <test name="Functional Tests 1 to 5">
         <classes>
             <class name="com.automation.tests.FunctionalTestCases1to5"/>
         </classes>
     </test>
 
-    <test name="Functional Test Cases 6 to 10">
+    <test name="Functional Tests 6 to 10">
         <classes>
             <class name="com.automation.tests.FunctionalTestCases6to10"/>
         </classes>

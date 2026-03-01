@@ -32,4 +32,15 @@ public class LoginTest extends BaseTest {
         Assert.assertTrue(checkout.isPageLoaded(),
                 "Checkout page should be displayed after successful login");
     }
+
+    @Test(description = "Verify user can log in via the menu and land back on the catalog")
+    public void testLoginViaMenu() {
+        LoginPage loginPage = new CatalogPage(driver).openLoginFromMenu();
+        Assert.assertTrue(loginPage.isPageLoaded(),
+                "Login page should load after tapping Log In from menu");
+
+        CatalogPage catalog = loginPage.login(VALID_USER, VALID_PASS);
+        Assert.assertTrue(catalog.isPageLoaded(),
+                "Catalog page should reload after successful menu login");
+    }
 }
