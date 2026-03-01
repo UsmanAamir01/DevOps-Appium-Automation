@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-test:
     name: Build & Run Appium Tests
-    runs-on: ubuntu-24.04
+    runs-on: macos-13
 
     steps:
       - name: Checkout repository
@@ -35,26 +35,6 @@ jobs:
           appium driver install uiautomator2
           appium --version
 
-      - name: Enable KVM hardware acceleration
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Accept Android SDK licenses and install system image
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          java -version
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-            "system-images;android-30;google_apis;x86_64" \
-            "platform-tools" \
-            "platforms;android-30"
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
       - name: Build Maven project
         run: mvn clean compile -B
 
@@ -65,7 +45,7 @@ jobs:
           arch: x86_64
           target: google_apis
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          emulator-options: -no-window -noaudio -no-boot-anim -no-snapshot
           disable-animations: true
           script: |
             echo "=== Environment ==="
@@ -75,10 +55,7 @@ jobs:
             echo ""
 
             echo "=== Starting Appium server ==="
-            nohup appium --address 127.0.0.1 --port 4723 \
-              --relaxed-security \
-              --log-timestamp \
-              > appium.log 2>&1 &
+            nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --log-timestamp > appium.log 2>&1 &
             APPIUM_PID=$!
             echo "Appium PID: $APPIUM_PID"
 
@@ -106,9 +83,6 @@ jobs:
 
             kill $APPIUM_PID 2>/dev/null || true
             exit ${TEST_EXIT:-0}
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
       - name: Upload test reports
         if: always()
