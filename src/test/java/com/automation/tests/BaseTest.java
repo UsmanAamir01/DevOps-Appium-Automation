@@ -11,15 +11,6 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-/**
- * BaseTest — driver lifecycle shared by every test class.
- *
- * Design decisions:
- *  • UiAutomator2Options configured inline — no hidden factory class.
- *  • No implicitlyWait — explicit waits in BasePage make implicit waits harmful
- *    (they mask TimeoutExceptions and slow negative-path tests).
- *  • @AfterMethod receives ITestResult so screenshots are saved only on failure.
- */
 public class BaseTest {
 
     private static final String APPIUM_URL  = "http://127.0.0.1:4723";
