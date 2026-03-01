@@ -86,10 +86,10 @@ The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically
 | 1 | Catalog         | `CatalogTest`                 | 3     |
 | 2 | Product Detail  | `ProductDetailTest`           | 3     |
 | 3 | Cart            | `CartTest`                    | 3     |
-| 4 | Login           | `LoginTest`                   | 2     |
+| 4 | Login           | `LoginTest`                   | 3     |
 | 5 | Checkout        | `CheckoutTest`                | 2     |
 | 6 | End-to-End      | `EndToEndTest`                | 1     |
 | 7 | Functional 1–5  | `FunctionalTestCases1to5`     | 5     |
 | 8 | Functional 6–10 | `FunctionalTestCases6to10`    | 5     |
 
-**Total: 24 tests across 8 test classes**
+**Total: 25 tests across 8 test classes**
