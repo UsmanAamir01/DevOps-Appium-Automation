@@ -116,6 +116,26 @@ jobs:
           path: target/surefire-reports/
           retention-days: 14
 
+      - name: Generate Allure report
+        if: always()
+        run: mvn allure:report -B || true
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: target/allure-results/
+          retention-days: 14
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin/
+          retention-days: 14
+
       - name: Upload Appium log
         if: always()
         uses: actions/upload-artifact@v4

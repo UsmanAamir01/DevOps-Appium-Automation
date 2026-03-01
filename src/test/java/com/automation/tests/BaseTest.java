@@ -12,6 +12,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 
+/**
+ * Base class for all test classes.
+ * Uses ThreadLocal for thread-safe parallel test execution.
+ */
 public class BaseTest {
 
     private static final String APPIUM_URL  = "http://127.0.0.1:4723";
@@ -25,6 +29,15 @@ public class BaseTest {
     private static final boolean APP_PRE_INSTALLED =
             "true".equalsIgnoreCase(System.getenv("APP_PRE_INSTALLED"));
 
+    /** Thread-local driver for parallel test execution. */
+    private static final ThreadLocal<AndroidDriver> driverThread = new ThreadLocal<>();
+
+    /**
+     * Provides the driver instance for the current thread.
+     * Subclasses access this via the {@code driver} field (set in setUp).
+     */
+    protected AndroidDriver driver;
+
     private static String resolveApkPath() {
         String envPath = System.getenv("APP_PATH");
         if (envPath != null && !envPath.isEmpty()) {
@@ -32,8 +45,6 @@ public class BaseTest {
         }
         return new File("src/test/resources/apps/MyDemoApp.apk").getAbsolutePath();
     }
-
-    protected AndroidDriver driver;
 
     @BeforeMethod
     public void setUp() {
@@ -49,7 +60,6 @@ public class BaseTest {
         options.setCapability("appium:appWaitDuration", IS_CI ? 60000 : 30000);
 
         if (APP_PRE_INSTALLED) {
-            // CI pre-installed mode: launch by package/activity instead of re-installing the APK
             options.setCapability("appium:appPackage", "com.saucelabs.mydemoapp.android");
             options.setCapability("appium:appActivity",
                     "com.saucelabs.mydemoapp.android.view.activities.SplashActivity");
@@ -58,15 +68,16 @@ public class BaseTest {
             options.setCapability("appium:appWaitForLaunch", true);
             options.setCapability("appium:adbExecTimeout", 60000);
         } else {
-            // Normal mode: install APK via Appium
             options.setApp(APK_PATH);
             options.setFullReset(false);
             options.setNoReset(false);
         }
 
         try {
-            driver = new AndroidDriver(new URL(APPIUM_URL), options);
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(IS_CI ? 15 : 10));
+            AndroidDriver d = new AndroidDriver(new URL(APPIUM_URL), options);
+            d.manage().timeouts().implicitlyWait(Duration.ofSeconds(IS_CI ? 15 : 10));
+            driverThread.set(d);
+            this.driver = d;
         } catch (MalformedURLException e) {
             throw new RuntimeException("Invalid Appium server URL: " + APPIUM_URL, e);
         }
@@ -74,11 +85,14 @@ public class BaseTest {
 
     @AfterMethod
     public void tearDown(ITestResult result) {
-        if (driver != null) {
+        AndroidDriver d = driverThread.get();
+        if (d != null) {
             if (result.getStatus() == ITestResult.FAILURE) {
-                TestUtils.takeScreenshot(driver, result.getName());
+                TestUtils.takeScreenshot(d, result.getName());
             }
-            driver.quit();
+            d.quit();
+            driverThread.remove();
         }
+        this.driver = null;
     }
 }

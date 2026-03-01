@@ -1,0 +1,62 @@
+name: Docker Appium CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_class:
+        description: 'Specific test class to run (leave empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  docker-test:
+    name: Run Tests in Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and run tests via Docker Compose
+        run: |
+          docker compose up --build --abort-on-container-exit --exit-code-from tests
+        env:
+          TEST_CLASS: ${{ github.event.inputs.test_class }}
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          if [ -d "target/allure-results" ]; then
+            docker compose run --rm tests mvn allure:report -B || true
+          fi
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: target/allure-results/
+          retention-days: 14
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin/
+          retention-days: 14
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 14
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down --volumes --remove-orphans

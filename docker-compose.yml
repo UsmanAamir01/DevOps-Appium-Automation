@@ -1,0 +1,46 @@
+# ──────────────────────────────────────────────────────────────────────
+# Dockerized Appium Test Environment
+# ──────────────────────────────────────────────────────────────────────
+# Usage:
+#   docker-compose up --build --abort-on-container-exit
+#   docker-compose down
+#
+# Reports will be available in: ./target/site/allure-maven-plugin/
+# ──────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Appium Server with Android Emulator ──────────────────────────
+  appium:
+    image: appium/appium
+    container_name: appium-server
+    privileged: true
+    ports:
+      - "4723:4723"
+    environment:
+      - RELAXED_SECURITY=true
+    volumes:
+      - ./src/test/resources/apps:/apps:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4723/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ── Test Runner ──────────────────────────────────────────────────
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: test-runner
+    depends_on:
+      appium:
+        condition: service_healthy
+    environment:
+      - APPIUM_URL=http://appium:4723
+      - DEVICE_NAME=emulator-5554
+      - APP_PATH=/apps/MyDemoApp.apk
+      - CI=true
+    volumes:
+      - ./target:/app/target
+    working_dir: /app
