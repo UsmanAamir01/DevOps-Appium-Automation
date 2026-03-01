@@ -34,3 +34,6 @@ build.log
 deptree.txt
 *.iml
 
+# Allow test APK to be tracked
+!src/test/resources/apps/*.apk
+
