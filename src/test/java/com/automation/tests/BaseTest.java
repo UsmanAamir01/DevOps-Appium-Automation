@@ -32,10 +32,6 @@ public class BaseTest {
     /** Thread-local driver for parallel test execution. */
     private static final ThreadLocal<AndroidDriver> driverThread = new ThreadLocal<>();
 
-    /**
-     * Provides the driver instance for the current thread.
-     * Subclasses access this via the {@code driver} field (set in setUp).
-     */
     protected AndroidDriver driver;
 
     private static String resolveApkPath() {
@@ -51,23 +47,31 @@ public class BaseTest {
         UiAutomator2Options options = new UiAutomator2Options();
         options.setDeviceName(DEVICE_NAME);
         options.setAutoGrantPermissions(true);
-        options.setCapability("appium:newCommandTimeout", IS_CI ? 180 : 120);
+        options.setCapability("appium:newCommandTimeout", IS_CI ? 300 : 120);
+
+        // UiAutomator2 server install & launch timeouts (default 20s is too low for CI)
+        options.setCapability("appium:uiautomator2ServerInstallTimeout", IS_CI ? 120000 : 30000);
+        options.setCapability("appium:uiautomator2ServerLaunchTimeout", IS_CI ? 120000 : 30000);
 
         // App activity wait configuration
         options.setCapability("appium:appWaitActivity",
                 "com.saucelabs.mydemoapp.android.view.activities.SplashActivity," +
                 "com.saucelabs.mydemoapp.android.view.activities.MainActivity");
-        options.setCapability("appium:appWaitDuration", IS_CI ? 60000 : 30000);
+        options.setCapability("appium:appWaitDuration", IS_CI ? 90000 : 30000);
 
         if (APP_PRE_INSTALLED) {
+            // CI pre-installed mode: launch by package/activity, DON'T clear app data
             options.setCapability("appium:appPackage", "com.saucelabs.mydemoapp.android");
             options.setCapability("appium:appActivity",
                     "com.saucelabs.mydemoapp.android.view.activities.SplashActivity");
+            // noReset=true prevents pm clear which crashes the instrumentation
             options.setFullReset(false);
-            options.setNoReset(false);
+            options.setNoReset(true);
             options.setCapability("appium:appWaitForLaunch", true);
-            options.setCapability("appium:adbExecTimeout", 60000);
+            options.setCapability("appium:adbExecTimeout", 120000);
+            options.setCapability("appium:skipDeviceInitialization", true);
         } else {
+            // Normal local mode: install APK via Appium
             options.setApp(APK_PATH);
             options.setFullReset(false);
             options.setNoReset(false);
