@@ -13,7 +13,8 @@ public abstract class BasePage {
     protected final AndroidDriver driver;
     protected final WebDriverWait wait;
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+    private static final boolean IS_CI = "true".equalsIgnoreCase(System.getenv("CI"));
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(IS_CI ? 45 : 30);
 
     protected BasePage(AndroidDriver driver) {
         this.driver = driver;

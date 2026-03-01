@@ -88,12 +88,15 @@ jobs:
             echo "APK path: $APP_PATH" &&
             ls -lh "$APP_PATH" &&
             echo "=== Pre-install APK on emulator ===" &&
-            (adb install "$APP_PATH" || echo "Pre-install skipped") &&
+            adb install -r "$APP_PATH" &&
+            echo "=== Wait for emulator to settle ===" &&
+            sleep 5 &&
             echo "=== Starting Appium Server ===" &&
             nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload --log-timestamp > appium.log 2>&1 & APPIUM_PID=$! &&
             echo "Appium PID: $APPIUM_PID" &&
             echo "=== Waiting for Appium to be ready ===" &&
             i=1; while [ $i -le 40 ]; do if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "Appium ready at attempt $i"; break; fi; if [ $i -eq 40 ]; then echo "Appium failed to start"; cat appium.log; exit 1; fi; i=$((i+1)); sleep 2; done &&
+            sleep 5 &&
             echo "=== Running Maven Tests ===" &&
             mvn test -B; TEST_EXIT=$?;
             echo "=== Appium Log (last 100 lines) ===" ;
@@ -103,6 +106,7 @@ jobs:
         env:
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
           APP_PATH: ${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk
+          APP_PRE_INSTALLED: "true"
 
       - name: Upload test reports
         if: always()
