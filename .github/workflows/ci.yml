@@ -80,50 +80,25 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           disable-animations: true
           emulator-boot-timeout: 600
-          script: |
-            echo "=== Emulator Info ==="
-            adb devices
-            adb shell getprop ro.build.version.sdk
-
-            echo "=== APK Info ==="
-            echo "APK path: $APP_PATH"
-            ls -lh "$APP_PATH"
-
-            echo "=== Pre-install APK on emulator ==="
-            adb install "$APP_PATH" || echo "Pre-install skipped (Appium will handle it)"
-
-            echo "=== Starting Appium Server ==="
-            nohup appium \
-              --address 127.0.0.1 \
-              --port 4723 \
-              --relaxed-security \
-              --allow-insecure chromedriver_autodownload \
-              --log-timestamp \
-              > appium.log 2>&1 & APPIUM_PID=$!
-
-            echo "Appium PID: $APPIUM_PID"
-
-            echo "=== Waiting for Appium to be ready ==="
-            for i in $(seq 1 40); do
-              if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then
-                echo "Appium ready at attempt $i"
-                break
-              fi
-              if [ $i -eq 40 ]; then
-                echo "ERROR: Appium failed to start after 40 attempts"
-                cat appium.log
-                exit 1
-              fi
-              sleep 2
-            done
-
-            echo "=== Running Maven Tests ==="
-            mvn test -B; TEST_EXIT=$?
-
-            echo "=== Appium Log (last 100 lines) ==="
-            tail -100 appium.log || true
-
-            kill $APPIUM_PID 2>/dev/null || true
+          script: >
+            echo "=== Emulator Info ===" &&
+            adb devices &&
+            adb shell getprop ro.build.version.sdk &&
+            echo "=== APK Info ===" &&
+            echo "APK path: $APP_PATH" &&
+            ls -lh "$APP_PATH" &&
+            echo "=== Pre-install APK on emulator ===" &&
+            (adb install "$APP_PATH" || echo "Pre-install skipped") &&
+            echo "=== Starting Appium Server ===" &&
+            nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload --log-timestamp > appium.log 2>&1 & APPIUM_PID=$! &&
+            echo "Appium PID: $APPIUM_PID" &&
+            echo "=== Waiting for Appium to be ready ===" &&
+            i=1; while [ $i -le 40 ]; do if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "Appium ready at attempt $i"; break; fi; if [ $i -eq 40 ]; then echo "Appium failed to start"; cat appium.log; exit 1; fi; i=$((i+1)); sleep 2; done &&
+            echo "=== Running Maven Tests ===" &&
+            mvn test -B; TEST_EXIT=$?;
+            echo "=== Appium Log (last 100 lines) ===" ;
+            tail -100 appium.log || true;
+            kill $APPIUM_PID 2>/dev/null || true;
             exit $TEST_EXIT
         env:
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
