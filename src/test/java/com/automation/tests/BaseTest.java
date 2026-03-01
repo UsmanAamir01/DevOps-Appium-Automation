@@ -21,6 +21,10 @@ public class BaseTest {
     /** True when running inside a CI environment (GitHub Actions sets CI=true). */
     private static final boolean IS_CI = "true".equalsIgnoreCase(System.getenv("CI"));
 
+    /** True when the APK has been pre-installed on the emulator via adb install. */
+    private static final boolean APP_PRE_INSTALLED =
+            "true".equalsIgnoreCase(System.getenv("APP_PRE_INSTALLED"));
+
     private static String resolveApkPath() {
         String envPath = System.getenv("APP_PATH");
         if (envPath != null && !envPath.isEmpty()) {
@@ -35,33 +39,27 @@ public class BaseTest {
     public void setUp() {
         UiAutomator2Options options = new UiAutomator2Options();
         options.setDeviceName(DEVICE_NAME);
-        options.setApp(APK_PATH);
         options.setAutoGrantPermissions(true);
-        options.setCapability("appium:newCommandTimeout", 180);
+        options.setCapability("appium:newCommandTimeout", IS_CI ? 180 : 120);
 
         // App activity wait configuration
         options.setCapability("appium:appWaitActivity",
                 "com.saucelabs.mydemoapp.android.view.activities.SplashActivity," +
                 "com.saucelabs.mydemoapp.android.view.activities.MainActivity");
-        options.setCapability("appium:appWaitDuration", 60000);
+        options.setCapability("appium:appWaitDuration", IS_CI ? 60000 : 30000);
 
-        if (IS_CI) {
-            // CI mode: don't reinstall the pre-installed APK every test, just clear app data
+        if (APP_PRE_INSTALLED) {
+            // CI pre-installed mode: launch by package/activity instead of re-installing the APK
+            options.setCapability("appium:appPackage", "com.saucelabs.mydemoapp.android");
+            options.setCapability("appium:appActivity",
+                    "com.saucelabs.mydemoapp.android.view.activities.SplashActivity");
             options.setFullReset(false);
             options.setNoReset(false);
             options.setCapability("appium:appWaitForLaunch", true);
-            // Longer ADB command timeout for slow CI emulators
             options.setCapability("appium:adbExecTimeout", 60000);
-            // Don't use app path if the APK is already installed via adb install
-            String installed = System.getenv("APP_PRE_INSTALLED");
-            if ("true".equalsIgnoreCase(installed)) {
-                options.removeCapability("appium:app");
-                options.setCapability("appium:appPackage", "com.saucelabs.mydemoapp.android");
-                options.setCapability("appium:appActivity",
-                        "com.saucelabs.mydemoapp.android.view.activities.SplashActivity");
-            }
         } else {
-            // Local mode: clean app state per test
+            // Normal mode: install APK via Appium
+            options.setApp(APK_PATH);
             options.setFullReset(false);
             options.setNoReset(false);
         }
