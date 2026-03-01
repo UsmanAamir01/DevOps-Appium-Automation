@@ -9,82 +9,44 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Page Object — Catalog / Products listing screen.
- *
- * This is the home screen of MyDemoApp after launch.
- *
- * Encapsulation:
- *  • All locators are private static final — hidden from tests.
- *  • Public methods expose user-facing actions only.
- *  • Fluent Navigation: methods that change screens return the appropriate Page Object.
- */
 public class CatalogPage extends BasePage {
 
-    // ── Private locators ─────────────────────────────────────────────────
-    private static final By PRODUCTS_TITLE      =
-            By.id("com.saucelabs.mydemoapp.android:id/productTV");
-    private static final By PRODUCT_NAMES       =
-            AppiumBy.accessibilityId("Product Title");
-    private static final By FIRST_PRODUCT_IMAGE =
-            By.xpath("(//android.widget.ImageView[@content-desc='Product Image'])[1]");
-    private static final By MENU_BUTTON         =
-            AppiumBy.accessibilityId("View menu");
-    private static final By MENU_LOGIN_ITEM     =
-            AppiumBy.accessibilityId("Login Menu Item");
-    private static final By CART_BUTTON         =
-            AppiumBy.accessibilityId("View cart");
+    private static final By PRODUCTS_TITLE      = By.id("com.saucelabs.mydemoapp.android:id/productTV");
+    private static final By PRODUCT_NAMES       = AppiumBy.accessibilityId("Product Title");
+    private static final By FIRST_PRODUCT_IMAGE = By.xpath("(//android.widget.ImageView[@content-desc='Product Image'])[1]");
+    private static final By MENU_BUTTON         = AppiumBy.accessibilityId("View menu");
+    private static final By MENU_LOGIN_ITEM     = AppiumBy.accessibilityId("Login Menu Item");
+    private static final By CART_BUTTON         = AppiumBy.accessibilityId("View cart");
 
     public CatalogPage(AndroidDriver driver) {
         super(driver);
     }
 
-    // ── Page state ───────────────────────────────────────────────────────
-
-    /** Returns true when the Products title banner is visible. */
     public boolean isPageLoaded() {
         return isDisplayed(PRODUCTS_TITLE);
     }
 
-    // ── User actions ─────────────────────────────────────────────────────
-
-    /** Returns a list of every currently visible product name. */
     public List<String> getProductNames() {
         List<WebElement> elements = wait.until(
                 ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_NAMES));
-        return elements.stream()
-                .map(e -> e.getText().trim())
-                .collect(Collectors.toList());
+        return elements.stream().map(e -> e.getText().trim()).collect(Collectors.toList());
     }
 
-    /** Returns how many products are currently visible on screen. */
     public int getProductCount() {
         return getProductNames().size();
     }
 
-    /**
-     * Taps the first product image.
-     * Fluent Navigation → returns ProductDetailPage.
-     */
     public ProductDetailPage openFirstProduct() {
         click(FIRST_PRODUCT_IMAGE);
         return new ProductDetailPage(driver);
     }
 
-    /**
-     * Opens the hamburger menu and taps "Log In".
-     * Fluent Navigation → returns LoginPage.
-     */
     public LoginPage openLoginFromMenu() {
         click(MENU_BUTTON);
         click(MENU_LOGIN_ITEM);
         return new LoginPage(driver);
     }
 
-    /**
-     * Taps the cart icon in the top bar.
-     * Fluent Navigation → returns CartPage.
-     */
     public CartPage openCart() {
         click(CART_BUTTON);
         return new CartPage(driver);
