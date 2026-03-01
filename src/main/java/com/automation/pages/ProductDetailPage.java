@@ -1,6 +1,5 @@
 package com.automation.pages;
 
-import io.appium.java_client.AppiumBy;
 import io.appium.java_client.android.AndroidDriver;
 import org.openqa.selenium.By;
 
@@ -9,7 +8,7 @@ public class ProductDetailPage extends BasePage {
     private static final By PRODUCT_LABEL   = By.id("com.saucelabs.mydemoapp.android:id/productTV");
     private static final By PRODUCT_PRICE   = By.id("com.saucelabs.mydemoapp.android:id/priceTV");
     private static final By ADD_TO_CART_BTN = By.id("com.saucelabs.mydemoapp.android:id/cartBt");
-    private static final By CART_BUTTON     = AppiumBy.accessibilityId("View cart");
+    private static final By CART_BUTTON     = By.id("com.saucelabs.mydemoapp.android:id/cartRL");
 
     public ProductDetailPage(AndroidDriver driver) {
         super(driver);

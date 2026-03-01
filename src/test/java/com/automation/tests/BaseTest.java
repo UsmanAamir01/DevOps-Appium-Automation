@@ -35,6 +35,9 @@ public class BaseTest {
         options.setAutoGrantPermissions(true);
         options.setFullReset(false);
         options.setNoReset(false);
+        options.setCapability("appium:newCommandTimeout", 120);
+        options.setCapability("appium:appWaitActivity", "com.saucelabs.mydemoapp.android.view.activities.SplashActivity,com.saucelabs.mydemoapp.android.view.activities.MainActivity");
+        options.setCapability("appium:appWaitDuration", 30000);
 
         try {
             driver = new AndroidDriver(new URL(APPIUM_URL), options);

@@ -1,6 +1,5 @@
 package com.automation.pages;
 
-import io.appium.java_client.AppiumBy;
 import io.appium.java_client.android.AndroidDriver;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
@@ -12,11 +11,11 @@ import java.util.stream.Collectors;
 public class CatalogPage extends BasePage {
 
     private static final By PRODUCTS_TITLE      = By.id("com.saucelabs.mydemoapp.android:id/productTV");
-    private static final By PRODUCT_NAMES       = AppiumBy.accessibilityId("Product Title");
-    private static final By FIRST_PRODUCT_IMAGE = By.xpath("(//android.widget.ImageView[@content-desc='Product Image'])[1]");
-    private static final By MENU_BUTTON         = AppiumBy.accessibilityId("View menu");
-    private static final By MENU_LOGIN_ITEM     = AppiumBy.accessibilityId("Login Menu Item");
-    private static final By CART_BUTTON         = AppiumBy.accessibilityId("View cart");
+    private static final By PRODUCT_ITEM_TITLE  = By.id("com.saucelabs.mydemoapp.android:id/titleTV");
+    private static final By PRODUCT_ITEM_IMAGE  = By.id("com.saucelabs.mydemoapp.android:id/productIV");
+    private static final By MENU_BUTTON         = By.id("com.saucelabs.mydemoapp.android:id/menuIV");
+    private static final By MENU_LOGIN_ITEM     = By.xpath("//android.widget.TextView[@text='Log In']");
+    private static final By CART_BUTTON         = By.id("com.saucelabs.mydemoapp.android:id/cartRL");
 
     public CatalogPage(AndroidDriver driver) {
         super(driver);
@@ -28,7 +27,7 @@ public class CatalogPage extends BasePage {
 
     public List<String> getProductNames() {
         List<WebElement> elements = wait.until(
-                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_NAMES));
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_ITEM_TITLE));
         return elements.stream().map(e -> e.getText().trim()).collect(Collectors.toList());
     }
 
@@ -37,7 +36,9 @@ public class CatalogPage extends BasePage {
     }
 
     public ProductDetailPage openFirstProduct() {
-        click(FIRST_PRODUCT_IMAGE);
+        List<WebElement> images = wait.until(
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_ITEM_IMAGE));
+        images.get(0).click();
         return new ProductDetailPage(driver);
     }
 

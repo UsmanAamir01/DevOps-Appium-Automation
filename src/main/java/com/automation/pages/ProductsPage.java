@@ -1,6 +1,5 @@
 package com.automation.pages;
 
-import io.appium.java_client.AppiumBy;
 import io.appium.java_client.android.AndroidDriver;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
@@ -23,12 +22,9 @@ import java.util.stream.Collectors;
 public class ProductsPage extends BasePage {
 
     // ── Private locators ─────────────────────────────────────────────────
-    private static final By PRODUCTS_TITLE      =
-            By.id("com.saucelabs.mydemoapp.android:id/productTV");
-    private static final By PRODUCT_NAMES       =
-            AppiumBy.accessibilityId("Product Title");
-    private static final By FIRST_PRODUCT_IMAGE =
-            By.xpath("(//android.widget.ImageView[@content-desc='Product Image'])[1]");
+    private static final By PRODUCTS_TITLE     = By.id("com.saucelabs.mydemoapp.android:id/productTV");
+    private static final By PRODUCT_ITEM_TITLE = By.id("com.saucelabs.mydemoapp.android:id/titleTV");
+    private static final By PRODUCT_ITEM_IMAGE = By.id("com.saucelabs.mydemoapp.android:id/productIV");
 
     public ProductsPage(AndroidDriver driver) {
         super(driver);
@@ -46,7 +42,7 @@ public class ProductsPage extends BasePage {
     /** Returns a list of all visible product names on screen. */
     public List<String> getAllProductNames() {
         List<WebElement> elements = wait.until(
-                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_NAMES));
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_ITEM_TITLE));
         return elements.stream()
                 .map(e -> e.getText().trim())
                 .collect(Collectors.toList());
@@ -67,7 +63,9 @@ public class ProductsPage extends BasePage {
      * Fluent Navigation → returns ProductDetailPage.
      */
     public ProductDetailPage openFirstProduct() {
-        click(FIRST_PRODUCT_IMAGE);
+        List<WebElement> images = wait.until(
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_ITEM_IMAGE));
+        images.get(0).click();
         return new ProductDetailPage(driver);
     }
 
@@ -79,7 +77,7 @@ public class ProductsPage extends BasePage {
      */
     public ProductDetailPage openProductByName(String name) {
         List<WebElement> elements = wait.until(
-                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_NAMES));
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_ITEM_TITLE));
         for (WebElement el : elements) {
             if (el.getText().trim().equalsIgnoreCase(name)) {
                 el.click();
