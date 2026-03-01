@@ -1,0 +1,138 @@
+name: Appium Android CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Build & Run Appium Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout source code ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Java 11 ────────────────────────────────────────────────
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      # ── 3. Set up Node.js (required by Appium) ───────────────────────────
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # ── 4. Install Appium and UiAutomator2 driver ────────────────────────
+      - name: Install Appium and UiAutomator2 driver
+        run: |
+          npm install -g appium@latest
+          appium driver install uiautomator2
+          appium --version
+
+      # ── 5. Enable KVM for hardware acceleration ──────────────────────────
+      - name: Enable KVM hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # ── 6. Cache Android SDK ─────────────────────────────────────────────
+      - name: Cache Android SDK
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/android/sdk
+          key: android-sdk-${{ runner.os }}
+
+      # ── 7. Start Android Emulator (API 30) ───────────────────────────────
+      - name: Start Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          avd-name: emulator-5554
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -noaudio
+            -no-boot-anim
+            -no-snapshot
+          disable-animations: true
+          script: echo "Emulator started"
+
+      # ── 8. Wait for emulator to be fully ready ───────────────────────────
+      - name: Wait for emulator to boot
+        run: |
+          adb wait-for-device
+          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done'
+          adb shell input keyevent 82
+          echo "Emulator is ready"
+
+      # ── 9. Start Appium server in background ─────────────────────────────
+      - name: Start Appium server
+        run: |
+          nohup appium --address 127.0.0.1 --port 4723 \
+            --log appium.log \
+            --log-level info \
+            --relaxed-security &
+          echo "Waiting for Appium server to be ready..."
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:4723/status | grep -q '"ready"'; then
+              echo "Appium server is ready"
+              break
+            fi
+            sleep 2
+          done
+
+      # ── 10. Build Maven project (compile only, skip tests) ───────────────
+      - name: Build Maven project
+        run: mvn clean compile -B
+
+      # ── 11. Execute automated test cases ─────────────────────────────────
+      - name: Run automated test cases
+        run: |
+          mvn test -B \
+            -DANDROID_HOME=$ANDROID_HOME \
+            -DANDROID_SDK_ROOT=$ANDROID_HOME
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+      # ── 12. Upload Surefire test reports ─────────────────────────────────
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 14
+
+      # ── 13. Upload Appium server log on failure ───────────────────────────
+      - name: Upload Appium log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-log
+          path: appium.log
+          retention-days: 7
+
+      # ── 14. Upload screenshots on failure ────────────────────────────────
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: target/screenshots/
+          retention-days: 7
+

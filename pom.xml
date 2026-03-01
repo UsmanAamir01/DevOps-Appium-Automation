@@ -56,10 +56,6 @@
                     <suiteXmlFiles>
                         <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
-                    <environmentVariables>
-                        <ANDROID_HOME>C:\Users\ALLAH\AppData\Local\Android\Sdk</ANDROID_HOME>
-                        <ANDROID_SDK_ROOT>C:\Users\ALLAH\AppData\Local\Android\Sdk</ANDROID_SDK_ROOT>
-                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>

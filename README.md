@@ -1,10 +1,15 @@
 # DevOps-Appium-Automation
 
+[![Appium Android CI](https://github.com/UsmanAamir01/DevOps-Appium-Automation/actions/workflows/ci.yml/badge.svg)](https://github.com/UsmanAamir01/DevOps-Appium-Automation/actions/workflows/ci.yml)
+
 A Maven-based Java test framework for Android automation using **Appium** and **TestNG**, following the **Page Object Model (POM)** design pattern.
 
 ## Project Structure
 
 ```
+.github/
+└── workflows/
+    └── ci.yml                        # GitHub Actions CI pipeline
 src/
 ├── main/java/com/automation/
 │   ├── base/
@@ -25,7 +30,10 @@ src/
 │   │   ├── ProductDetailTest.java    # Tests for product detail page
 │   │   ├── CartTest.java             # Tests for cart page
 │   │   ├── LoginTest.java            # Tests for login page
-│   │   └── CheckoutTest.java         # Tests for checkout page
+│   │   ├── CheckoutTest.java         # Tests for checkout page
+│   │   ├── EndToEndTest.java         # Full E2E navigation test
+│   │   ├── FunctionalTestCases1to5.java  # TC-01 to TC-05
+│   │   └── FunctionalTestCases6to10.java # TC-06 to TC-10
 │   └── resources/
 │       ├── apps/MyDemoApp.apk        # Demo application under test
 │       └── testng.xml                # TestNG suite configuration
@@ -33,30 +41,57 @@ src/
 
 ## Prerequisites
 
-| Tool             | Version  |
-|------------------|----------|
-| Java JDK         | 11+      |
-| Maven            | 3.8+     |
-| Node.js          | 18+      |
+| Tool             | Version   |
+|------------------|-----------|
+| Java JDK         | 11+       |
+| Maven            | 3.8+      |
+| Node.js          | 18+       |
 | Appium Server    | 2.x / 3.x |
-| Android Studio   | Latest   |
-| Android Emulator | API 30+  |
+| Android Studio   | Latest    |
+| Android Emulator | API 30+   |
 
-## Setup & Run
+## Setup & Run Locally
 
 1. **Start the Android emulator** (device name: `emulator-5554`)
 2. **Start the Appium server:** `appium`
 3. **Run all tests:** `mvn clean test`
 4. **Run a single test class:** `mvn test -Dtest=CatalogTest`
 
-## Test Pages Covered
+## CI Pipeline (GitHub Actions)
 
-| # | Page            | Test Class            | Tests |
-|---|-----------------|----------------------|-------|
-| 1 | Catalog         | `CatalogTest`        | 3     |
-| 2 | Product Detail  | `ProductDetailTest`  | 3     |
-| 3 | Cart            | `CartTest`           | 2     |
-| 4 | Login           | `LoginTest`          | 2     |
-| 5 | Checkout        | `CheckoutTest`       | 2     |
+The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically on:
+- Every **push to `main`**
+- Every **Pull Request targeting `main`**
 
-**Total: 12 tests across 5 pages**
+### Pipeline Steps
+
+| Step | Description |
+|------|-------------|
+| Checkout | Clones the repository |
+| Set up JDK 11 | Installs Temurin JDK 11 with Maven cache |
+| Set up Node.js 18 | Required for Appium |
+| Install Appium | Installs Appium globally + `uiautomator2` driver |
+| Enable KVM | Enables hardware acceleration for the emulator |
+| Start Android Emulator | Boots API 30 `x86_64` emulator (`google_apis`) |
+| Wait for emulator | Polls `sys.boot_completed` until device is ready |
+| Start Appium server | Starts Appium on `127.0.0.1:4723` in background |
+| Build Maven project | Runs `mvn clean compile` |
+| Run tests | Runs `mvn test` against the TestNG suite |
+| Upload reports | Saves Surefire XML/HTML reports as build artifacts |
+| Upload Appium log | Saves `appium.log` on failure |
+| Upload screenshots | Saves failure screenshots on failure |
+
+## Test Cases Covered
+
+| # | Page            | Test Class                    | Tests |
+|---|-----------------|-------------------------------|-------|
+| 1 | Catalog         | `CatalogTest`                 | 3     |
+| 2 | Product Detail  | `ProductDetailTest`           | 3     |
+| 3 | Cart            | `CartTest`                    | 3     |
+| 4 | Login           | `LoginTest`                   | 2     |
+| 5 | Checkout        | `CheckoutTest`                | 2     |
+| 6 | End-to-End      | `EndToEndTest`                | 1     |
+| 7 | Functional 1–5  | `FunctionalTestCases1to5`     | 5     |
+| 8 | Functional 6–10 | `FunctionalTestCases6to10`    | 5     |
+
+**Total: 24 tests across 8 test classes**
