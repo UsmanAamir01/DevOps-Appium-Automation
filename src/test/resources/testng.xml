@@ -37,4 +37,16 @@
         </classes>
     </test>
 
+    <test name="Functional Test Cases 1 to 5">
+        <classes>
+            <class name="com.automation.tests.FunctionalTestCases1to5"/>
+        </classes>
+    </test>
+
+    <test name="Functional Test Cases 6 to 10">
+        <classes>
+            <class name="com.automation.tests.FunctionalTestCases6to10"/>
+        </classes>
+    </test>
+
 </suite>
