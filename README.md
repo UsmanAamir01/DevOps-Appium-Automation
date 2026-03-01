@@ -69,9 +69,10 @@ The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically
 |------|-------------|
 | Checkout | Clones the repository |
 | Set up JDK 17 | Installs Temurin JDK 17 with Maven cache |
+| Pin JAVA_HOME | Ensures JDK 17 is used by all steps including emulator setup |
 | Set up Node.js 20 | Required for Appium 3.x |
 | Install Appium | Installs Appium globally + `uiautomator2` driver |
-| Enable KVM | Enables hardware acceleration for the emulator |
+| Enable KVM | Hardware acceleration for Android emulator on Linux |
 | Build Maven project | Runs `mvn clean compile` |
 | Run tests with Emulator | Boots API 30 emulator, starts Appium, runs `mvn test` |
 | Upload reports | Saves Surefire XML/HTML reports as build artifacts |
