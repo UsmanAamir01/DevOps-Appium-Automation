@@ -15,8 +15,15 @@ public class BaseTest {
 
     private static final String APPIUM_URL  = "http://127.0.0.1:4723";
     private static final String DEVICE_NAME = "emulator-5554";
-    private static final String APK_PATH    =
-            new File("src/test/resources/apps/MyDemoApp.apk").getAbsolutePath();
+    private static final String APK_PATH    = resolveApkPath();
+
+    private static String resolveApkPath() {
+        String envPath = System.getenv("APP_PATH");
+        if (envPath != null && !envPath.isEmpty()) {
+            return envPath;
+        }
+        return new File("src/test/resources/apps/MyDemoApp.apk").getAbsolutePath();
+    }
 
     protected AndroidDriver driver;
 

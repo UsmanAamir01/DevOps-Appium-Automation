@@ -41,6 +41,13 @@ jobs:
       - name: Install Appium and UiAutomator2 driver
         run: npm install -g appium@latest && appium driver install uiautomator2 && appium --version
 
+      - name: Download MyDemoApp APK
+        run: |
+          mkdir -p src/test/resources/apps
+          curl -L "https://github.com/saucelabs/my-demo-app-rn/releases/download/v1.3.0/Android-MyDemoAppRN.1.3.0.build-244.apk" -o src/test/resources/apps/MyDemoApp.apk
+          echo "APK size: $(du -sh src/test/resources/apps/MyDemoApp.apk)"
+          echo "APP_PATH=${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk" >> $GITHUB_ENV
+
       - name: Enable KVM hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -68,15 +75,18 @@ jobs:
           script: >
             adb devices &&
             adb shell getprop ro.build.version.sdk &&
+            echo "APK path: $APP_PATH" &&
+            ls -lh "$APP_PATH" &&
             nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --log-timestamp > appium.log 2>&1 & APPIUM_PID=$! &&
-            sleep 2 &&
+            sleep 3 &&
             i=1; while [ $i -le 30 ]; do if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "Appium ready at attempt $i"; break; fi; if [ $i -eq 30 ]; then echo "Appium failed to start"; cat appium.log; exit 1; fi; i=$((i+1)); sleep 2; done &&
             mvn test -B; TEST_EXIT=$?;
-            tail -50 appium.log || true;
+            tail -80 appium.log || true;
             kill $APPIUM_PID 2>/dev/null || true;
             exit $TEST_EXIT
         env:
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+          APP_PATH: ${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk
 
       - name: Upload test reports
         if: always()
