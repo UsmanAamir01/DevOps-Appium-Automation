@@ -2,16 +2,14 @@
 # Dockerized Appium + Android Emulator Test Environment
 # ──────────────────────────────────────────────────────────────────────
 # Usage:
-#   docker-compose up --build --abort-on-container-exit
-#   docker-compose down --volumes --remove-orphans
-#
-# Reports available at: ./target/site/allure-maven-plugin/index.html
+#   docker compose up --build --abort-on-container-exit --exit-code-from tests
+#   docker compose down --volumes --remove-orphans
 # ──────────────────────────────────────────────────────────────────────
 
 services:
-  # ── Android Emulator + Appium Server ─────────────────────────────
+  # ── Android Emulator + Appium Server (all-in-one) ────────────────
   android-emulator:
-    image: budtmo/docker-android:emulator_13.0
+    image: budtmo/docker-android:emulator_11.0
     container_name: android-emulator
     privileged: true
     devices:
@@ -29,12 +27,12 @@ services:
       - ./src/test/resources/apps:/root/tmp:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4723/status || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 60
-      start_period: 300s
+      interval: 10s
+      timeout: 5s
+      retries: 80
+      start_period: 180s
 
-  # ── Test Runner ──────────────────────────────────────────────────
+  # ── Maven Test Runner ────────────────────────────────────────────
   tests:
     build:
       context: .
@@ -48,7 +46,5 @@ services:
       DEVICE_NAME: "emulator-5554"
       APP_PATH: "/root/tmp/MyDemoApp.apk"
       CI: "true"
-      DOCKER_MODE: "true"
     volumes:
       - ./target:/app/target
-    working_dir: /app

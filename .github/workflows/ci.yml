@@ -10,95 +10,50 @@ on:
 
 jobs:
   build-and-test:
-    name: Build & Run Appium Tests
+    name: Build & Run Appium Tests (Docker)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        id: setup-java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
 
-      - name: Pin JAVA_HOME to JDK 17
-        run: |
-          echo "JAVA_HOME=${{ steps.setup-java.outputs.path }}" >> $GITHUB_ENV
-          echo "PATH=${{ steps.setup-java.outputs.path }}/bin:$PATH" >> $GITHUB_ENV
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Appium and UiAutomator2 driver
-        run: |
-          npm install -g appium@latest
-          appium driver install uiautomator2
-          appium --version
-
-      - name: Enable KVM hardware acceleration
+      - name: Enable KVM for Docker Android emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          ls -la /dev/kvm
 
-      - name: Accept Android SDK licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
-
-      - name: Build Maven project
+      - name: Build Maven project (compile check)
         run: mvn clean compile -B
 
-      - name: Run Appium tests with Android Emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 30
-          arch: x86_64
-          target: google_apis
-          profile: pixel_5
-          avd-name: test_device
-          force-avd-creation: true
-          ram-size: 4096M
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          disable-animations: true
-          emulator-boot-timeout: 600
-          script: >
-            echo "=== Emulator Info ===" &&
-            adb devices &&
-            adb shell getprop ro.build.version.sdk &&
-            echo "=== Install APK ===" &&
-            adb install -r src/test/resources/apps/MyDemoApp.apk &&
-            echo "=== Verify APK installed ===" &&
-            adb shell pm list packages | grep saucelabs &&
-            echo "=== Starting Appium ===" &&
-            nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload --log-timestamp > appium.log 2>&1 & APPIUM_PID=$! &&
-            echo "Appium PID: $APPIUM_PID" &&
-            echo "=== Waiting for Appium ===" &&
-            i=1; while [ $i -le 60 ]; do if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "Appium ready at attempt $i"; break; fi; if [ $i -eq 60 ]; then echo "Appium failed"; cat appium.log; exit 1; fi; i=$((i+1)); sleep 2; done &&
-            echo "=== Launch app once to warm up ===" &&
-            adb shell am start -n com.saucelabs.mydemoapp.android/.view.activities.SplashActivity &&
-            sleep 10 &&
-            adb shell am force-stop com.saucelabs.mydemoapp.android &&
-            sleep 3 &&
-            echo "=== Running Maven Tests ===" &&
-            mvn test -B; TEST_EXIT=$?;
-            echo "=== Generate Allure Report ===" ;
-            mvn allure:report -B || true;
-            echo "=== Appium Log (last 50 lines) ===" ;
-            tail -50 appium.log || true;
-            kill $APPIUM_PID 2>/dev/null || true;
-            exit $TEST_EXIT
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
-          APP_PATH: ${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk
-          CI: "true"
+      - name: Run Dockerized Appium tests
+        run: |
+          docker compose up --build --abort-on-container-exit --exit-code-from tests 2>&1 | tee docker-output.log
+          TEST_EXIT=${PIPESTATUS[0]}
+          echo "TEST_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Capture Docker logs
+        if: always()
+        run: |
+          docker compose logs android-emulator > docker-emulator.log 2>&1 || true
+          docker compose logs tests > docker-tests.log 2>&1 || true
+
+      - name: Stop Docker containers
+        if: always()
+        run: docker compose down --volumes --remove-orphans || true
+
+      - name: Generate Allure report (host)
+        if: always()
+        run: mvn allure:report -B 2>/dev/null || true
 
       - name: Upload test reports
         if: always()
@@ -124,12 +79,15 @@ jobs:
           path: target/site/allure-maven-plugin/
           retention-days: 14
 
-      - name: Upload Appium log
+      - name: Upload Docker logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: appium-log
-          path: appium.log
+          name: docker-logs
+          path: |
+            docker-output.log
+            docker-emulator.log
+            docker-tests.log
           retention-days: 7
 
       - name: Upload failure screenshots
@@ -143,7 +101,9 @@ jobs:
       - name: Test Results Summary
         if: always()
         run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🐳 Docker CI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Execution: \`budtmo/docker-android:emulator_11.0\` + Maven test runner" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -d "target/surefire-reports" ]; then
             TESTS=$(grep -r 'tests=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'tests="\K[0-9]+' | paste -sd+ | bc 2>/dev/null || echo "N/A")
@@ -151,9 +111,17 @@ jobs:
             ERRORS=$(grep -r 'errors=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'errors="\K[0-9]+' | paste -sd+ | bc 2>/dev/null || echo "N/A")
             echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
             echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Total Tests | $TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Tests | $TESTS |" >> $GITHUB_STEP_SUMMARY
             echo "| Failures | $FAILURES |" >> $GITHUB_STEP_SUMMARY
             echo "| Errors | $ERRORS |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ No Surefire reports found." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No test reports found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if tests failed
+        if: always()
+        run: |
+          if [ "${{ env.TEST_EXIT }}" != "0" ] && [ "${{ env.TEST_EXIT }}" != "" ]; then
+            echo "Tests failed with exit code ${{ env.TEST_EXIT }}"
+            exit 1
           fi
