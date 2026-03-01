@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-test:
     name: Build & Run Appium Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -31,10 +31,7 @@ jobs:
           echo "PATH=${{ steps.setup-java.outputs.path }}/bin:$PATH" >> $GITHUB_ENV
 
       - name: Verify Java version
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          java -version
-          javac -version
+        run: java -version && javac -version && echo "JAVA_HOME=$JAVA_HOME"
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -42,10 +39,7 @@ jobs:
           node-version: '20'
 
       - name: Install Appium and UiAutomator2 driver
-        run: |
-          npm install -g appium@latest
-          appium driver install uiautomator2
-          appium --version
+        run: npm install -g appium@latest && appium driver install uiautomator2 && appium --version
 
       - name: Enable KVM hardware acceleration
         run: |
@@ -71,31 +65,16 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           disable-animations: true
           emulator-boot-timeout: 600
-          script: |
-            adb devices
-            adb shell getprop ro.build.version.sdk
-
-            nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --log-timestamp > appium.log 2>&1 &
-            APPIUM_PID=$!
-
-            for i in $(seq 1 30); do
-              if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then
-                echo "Appium server is ready (attempt $i)"
-                break
-              fi
-              if [ $i -eq 30 ]; then
-                echo "Appium server failed to start:"
-                cat appium.log
-                exit 1
-              fi
-              sleep 2
-            done
-
-            mvn test -B || TEST_EXIT=$?
-
-            tail -50 appium.log || true
-            kill $APPIUM_PID 2>/dev/null || true
-            exit ${TEST_EXIT:-0}
+          script: >
+            adb devices &&
+            adb shell getprop ro.build.version.sdk &&
+            nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --log-timestamp > appium.log 2>&1 & APPIUM_PID=$! &&
+            sleep 2 &&
+            i=1; while [ $i -le 30 ]; do if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "Appium ready at attempt $i"; break; fi; if [ $i -eq 30 ]; then echo "Appium failed to start"; cat appium.log; exit 1; fi; i=$((i+1)); sleep 2; done &&
+            mvn test -B; TEST_EXIT=$?;
+            tail -50 appium.log || true;
+            kill $APPIUM_PID 2>/dev/null || true;
+            exit $TEST_EXIT
         env:
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
 

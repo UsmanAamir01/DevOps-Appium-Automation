@@ -74,7 +74,7 @@ The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically
 | Install Appium | Installs Appium globally + `uiautomator2` driver |
 | Enable KVM | Hardware acceleration for Android emulator on Linux |
 | Build Maven project | Runs `mvn clean compile` |
-| Run tests with Emulator | Boots API 30 emulator, starts Appium, runs `mvn test` |
+| Run tests with Emulator | Boots API 34 emulator on `ubuntu-22.04`, starts Appium, runs `mvn test` |
 | Upload reports | Saves Surefire XML/HTML reports as build artifacts |
 | Upload Appium log | Saves `appium.log` (always) |
 | Upload screenshots | Saves failure screenshots on failure |
