@@ -69,16 +69,13 @@ The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically
 |------|-------------|
 | Checkout | Clones the repository |
 | Set up JDK 11 | Installs Temurin JDK 11 with Maven cache |
-| Set up Node.js 18 | Required for Appium |
+| Set up Node.js 20 | Required for Appium 3.x |
 | Install Appium | Installs Appium globally + `uiautomator2` driver |
 | Enable KVM | Enables hardware acceleration for the emulator |
-| Start Android Emulator | Boots API 30 `x86_64` emulator (`google_apis`) |
-| Wait for emulator | Polls `sys.boot_completed` until device is ready |
-| Start Appium server | Starts Appium on `127.0.0.1:4723` in background |
 | Build Maven project | Runs `mvn clean compile` |
-| Run tests | Runs `mvn test` against the TestNG suite |
+| Run tests with Emulator | Boots API 30 emulator, starts Appium, runs `mvn test` |
 | Upload reports | Saves Surefire XML/HTML reports as build artifacts |
-| Upload Appium log | Saves `appium.log` on failure |
+| Upload Appium log | Saves `appium.log` (always) |
 | Upload screenshots | Saves failure screenshots on failure |
 
 ## Test Cases Covered
