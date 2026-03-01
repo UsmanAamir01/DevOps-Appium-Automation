@@ -1,144 +1,108 @@
-# DevOps-Appium-Automation
+# DevOps Appium Automation Engine 🚀📱
 
-[![Appium Android CI](https://github.com/UsmanAamir01/DevOps-Appium-Automation/actions/workflows/ci.yml/badge.svg)](https://github.com/UsmanAamir01/DevOps-Appium-Automation/actions/workflows/ci.yml)
+A modern, robust, and highly scalable **Appium Mobile Automation** framework designed from the ground up for **DevOps CI/CD integration**, **Parallel Execution**, and **Dockerized environments**.
 
-A Maven-based Java test framework for Android automation using **Appium** and **TestNG**, following the **Page Object Model (POM)** design pattern.
+## 🔥 Key Features
 
-## Project Structure
+- **Parallel Test Execution:** Built with `ThreadLocal` WebDrivers for thread-safe, concurrent test execution across multiple devices using TestNG.
+- **Hybrid Docker Architecture:** Runs tests and Appium fully containerized via `docker-compose`, securely proxying ADB to the host machine's emulator for perfect local/CI parity without nested KVM limits.
+- **Rich Allure Reporting:** Beautiful, interactive HTML test reports with screenshots attached automatically on test failures.
+- **Flaky Test Resilience:** Configured with `surefire` automatic retries and generous element polling for stable CI runs.
+- **Modular Object-Oriented Design:** Uses the Page Object Model (POM) and robust Wait utilities.
 
-```
-.github/
-└── workflows/
-    ├── ci.yml                        # GitHub Actions CI pipeline
-    └── docker-ci.yml                 # Docker-based CI pipeline
-src/
-├── main/java/com/automation/
-│   ├── base/
-│   │   └── AppDriver.java            # Centralised AndroidDriver factory
-│   ├── pages/
-│   │   ├── BasePage.java             # Abstract base for all Page Objects
-│   │   ├── CatalogPage.java          # Products listing screen
-│   │   ├── ProductDetailPage.java    # Product detail screen
-│   │   ├── CartPage.java             # Shopping cart screen
-│   │   ├── LoginPage.java            # Login screen
-│   │   └── CheckoutPage.java         # Checkout / shipping address screen
-│   └── utils/
-│       └── TestUtils.java            # Screenshot capture & utilities
-├── test/
-│   ├── java/com/automation/tests/
-│   │   ├── BaseTest.java             # Setup / teardown (ThreadLocal driver)
-│   │   ├── CatalogTest.java          # Tests for catalog page
-│   │   ├── ProductDetailTest.java    # Tests for product detail page
-│   │   ├── CartTest.java             # Tests for cart page
-│   │   ├── LoginTest.java            # Tests for login page
-│   │   ├── CheckoutTest.java         # Tests for checkout page
-│   │   ├── EndToEndTest.java         # Full E2E navigation test
-│   │   ├── FunctionalTestCases1to5.java  # TC-01 to TC-05
-│   │   └── FunctionalTestCases6to10.java # TC-06 to TC-10
-│   └── resources/
-│       ├── apps/MyDemoApp.apk        # Demo application under test
-│       ├── allure.properties         # Allure report configuration
-│       └── testng.xml                # TestNG suite (parallel enabled)
-Dockerfile                            # Test runner Docker image
-docker-compose.yml                    # Appium + test runner orchestration
+---
+
+## 🏗️ Project Structure
+
+```text
+├── .github/workflows/
+│   └── ci.yml                # Main CI Pipeline (Build, Docker, Test, Report)
+├── src/test/java/
+│   ├── com.automation.pages/ # Page Object Model classes
+│   ├── com.automation.tests/ # Test classes & ThreadLocal BaseTest
+│   └── com.automation.utils/ # Waiters and Screenshot utilities
+├── src/test/resources/
+│   ├── apps/                 # APK files (e.g., MyDemoApp.apk)
+│   ├── allure.properties     # Allure report configuration
+│   └── testng.xml            # TestNG suite config (handles parallel execution)
+├── docker-compose.yml        # Hybrid Docker stack (Appium + Test Runner containers)
+├── Dockerfile                # Multi-stage Maven build for Test Runner container
+└── pom.xml                   # Maven dependencies and Surefire/Allure plugins
 ```
 
-## Prerequisites
+---
 
-| Tool             | Version   |
-|------------------|-----------|
-| Java JDK         | 17+       |
-| Maven            | 3.8+      |
-| Node.js          | 20+       |
-| Appium Server    | 3.x       |
-| Android Studio   | Latest    |
-| Android Emulator | API 30+   |
-| Docker (optional)| 24+       |
+## 🏃‍♂️ Running Tests Locally
 
-## Setup & Run Locally
+### Pre-requisites
+- **Java JDK 17**
+- **Maven 3.9+**
+- **Android Studio** (for Emulator/SDK)
+- **Appium 2.x** (if running natively without Docker)
 
-1. **Start the Android emulator** (device name: `emulator-5554`)
-2. **Start the Appium server:** `appium`
-3. **Run all tests:** `mvn clean test`
-4. **Run a single test class:** `mvn test -Dtest=CatalogTest`
-5. **Generate Allure report:** `mvn allure:report` (view at `target/site/allure-maven-plugin/index.html`)
-
-## Parallel Test Execution
-
-Tests are configured for parallel execution via TestNG:
-
-- **Mode:** `parallel="tests"` — each `<test>` block runs in its own thread
-- **Thread count:** 3 concurrent threads
-- **Thread safety:** `BaseTest` uses `ThreadLocal<AndroidDriver>` for driver isolation
-
-> **Note:** With a single emulator, Appium serializes sessions. True parallelism requires multiple emulators/devices.
-
-## Test Reports (Allure)
-
-The framework uses [Allure](https://docs.qameta.io/allure/) for interactive, rich test reports:
-
+### Option 1: Standard Maven Execution (Native)
+Start your Appium server and Android Emulator locally on port `4723` and device `emulator-5554`, then run:
 ```bash
-# Run tests and generate report
 mvn clean test
-mvn allure:report
-
-# Open report in browser
-# Report is at: target/site/allure-maven-plugin/index.html
 ```
 
-In CI, Allure reports are uploaded as build artifacts and can be downloaded from the Actions run summary.
+### Option 2: Hybrid Docker Execution (Recommended) 🐳
+The most reliable way to run tests mimicking the CI environment. This spins up Appium and Maven **inside Docker**, connecting to your host's Android Emulator.
 
-## Docker Setup
+1. **Start your Android Emulator** via Android Studio. Wait until you see the Home Screen.
+2. Run the Docker stack:
+```bash
+docker compose up --build --abort-on-container-exit --exit-code-from tests
+```
+*Note: Make sure port `4723` is not already in use by a native Appium server.*
 
-Run the complete test environment using Docker:
+---
+
+## 📊 Generating Allure Reports
+
+After running the tests (via Native or Docker), the raw data is saved to `target/allure-results`. To generate and view the beautiful HTML report:
 
 ```bash
-# Build and run tests
-docker-compose up --build --abort-on-container-exit
-
-# View reports (after tests complete)
-# Reports are at: ./target/site/allure-maven-plugin/index.html
-
-# Cleanup
-docker-compose down --volumes --remove-orphans
+mvn allure:report
 ```
+The interactive HTML report will be generated at:
+`target/site/allure-maven-plugin/index.html`
 
-A separate Docker CI workflow is available via **Actions → Docker Appium CI → Run workflow**.
+*(You can simply open this file in your browser!)*
 
-## CI Pipeline (GitHub Actions)
+---
 
-The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically on:
-- Every **push to `main`**
-- Every **Pull Request targeting `main`**
+## 🌩️ CI/CD Pipeline (GitHub Actions)
 
-### Pipeline Steps
+This repository features an advanced Google GitHub Actions pipeline (`ci.yml`) that executes on every `push` and `pull_request` to the `main` branch.
 
-| Step | Description |
-|------|-------------|
-| Checkout | Clones the repository |
-| Set up JDK 17 | Installs Temurin JDK 17 with Maven cache |
-| Pin JAVA_HOME | Ensures JDK 17 is used by all steps including emulator setup |
-| Set up Node.js 20 | Required for Appium 3.x |
-| Install Appium | Installs Appium globally + `uiautomator2` driver |
-| Enable KVM | Hardware acceleration for Android emulator on Linux |
-| Build Maven project | Runs `mvn clean compile` |
-| Run tests with Emulator | Boots API 34 emulator on `ubuntu-latest`, starts Appium, runs `mvn test` |
-| Generate Allure report | Produces interactive HTML test report |
-| Upload reports | Saves Surefire XML/HTML + Allure reports as build artifacts |
-| Upload Appium log | Saves `appium.log` (always) |
-| Upload screenshots | Saves failure screenshots on failure |
+**The Pipeline Flow:**
+1. Validates the Maven build.
+2. Boots an **Android Emulator natively** via the `reactivecircus` action (bypassing macOS/Linux virtualization limits).
+3. Exposes the host's ADB daemon.
+4. Spins up the **Appium Server & Maven Tests in Docker**, proxying the connection to the host emulator.
+5. Generates the **Allure Test Report**.
+6. Archives screenshots, test reports, and Docker logs as downloadable artifacts.
 
-## Test Cases Covered
+---
 
-| # | Page            | Test Class                    | Tests |
-|---|-----------------|-------------------------------|-------|
-| 1 | Catalog         | `CatalogTest`                 | 3     |
-| 2 | Product Detail  | `ProductDetailTest`           | 3     |
-| 3 | Cart            | `CartTest`                    | 3     |
-| 4 | Login           | `LoginTest`                   | 3     |
-| 5 | Checkout        | `CheckoutTest`                | 2     |
-| 6 | End-to-End      | `EndToEndTest`                | 1     |
-| 7 | Functional 1–5  | `FunctionalTestCases1to5`     | 5     |
-| 8 | Functional 6–10 | `FunctionalTestCases6to10`    | 5     |
+## ⚡ Parallel Execution Setup
 
-**Total: 25 tests across 8 test classes**
+The framework is architecturally ready for **true parallel cross-device execution**.
+The `BaseTest.java` protects the `AndroidDriver` instance using `ThreadLocal<AndroidDriver>`, ensuring tests do not corrupt each other's sessions.
+
+To scale up:
+1. Attach multiple emulators or physical devices.
+2. Update `testng.xml` to define multiple `<test>` blocks with different device capabilities.
+3. TestNG will execute them concurrently based on the `thread-count="3"` and `parallel="tests"` attributes.
+
+---
+
+## 🛠️ Tech Stack
+- **Language**: Java 17
+- **Build Tool**: Maven
+- **Testing Framework**: TestNG
+- **Mobile Automation**: Appium Java Client 9.x / UiAutomator2
+- **Reporting**: Allure
+- **Containerization**: Docker & Docker Compose
+- **CI/CD**: GitHub Actions
