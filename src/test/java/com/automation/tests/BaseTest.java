@@ -15,24 +15,33 @@ import java.time.Duration;
 /**
  * Base class for all test classes.
  * Uses ThreadLocal for thread-safe parallel test execution.
+ * Supports 3 modes: local, CI (emulator-runner), and Docker.
  */
 public class BaseTest {
 
-    private static final String APPIUM_URL  = "http://127.0.0.1:4723";
-    private static final String DEVICE_NAME = "emulator-5554";
-    private static final String APK_PATH    = resolveApkPath();
-
-    /** True when running inside a CI environment (GitHub Actions sets CI=true). */
     private static final boolean IS_CI = "true".equalsIgnoreCase(System.getenv("CI"));
-
-    /** True when the APK has been pre-installed on the emulator via adb install. */
+    private static final boolean IS_DOCKER = "true".equalsIgnoreCase(System.getenv("DOCKER_MODE"));
     private static final boolean APP_PRE_INSTALLED =
             "true".equalsIgnoreCase(System.getenv("APP_PRE_INSTALLED"));
+
+    private static final String APPIUM_URL = resolveAppiumUrl();
+    private static final String DEVICE_NAME = resolveDeviceName();
+    private static final String APK_PATH = resolveApkPath();
 
     /** Thread-local driver for parallel test execution. */
     private static final ThreadLocal<AndroidDriver> driverThread = new ThreadLocal<>();
 
     protected AndroidDriver driver;
+
+    private static String resolveAppiumUrl() {
+        String envUrl = System.getenv("APPIUM_URL");
+        return (envUrl != null && !envUrl.isEmpty()) ? envUrl : "http://127.0.0.1:4723";
+    }
+
+    private static String resolveDeviceName() {
+        String envDevice = System.getenv("DEVICE_NAME");
+        return (envDevice != null && !envDevice.isEmpty()) ? envDevice : "emulator-5554";
+    }
 
     private static String resolveApkPath() {
         String envPath = System.getenv("APP_PATH");
@@ -47,31 +56,36 @@ public class BaseTest {
         UiAutomator2Options options = new UiAutomator2Options();
         options.setDeviceName(DEVICE_NAME);
         options.setAutoGrantPermissions(true);
-        options.setCapability("appium:newCommandTimeout", IS_CI ? 300 : 120);
+        options.setCapability("appium:newCommandTimeout", IS_CI || IS_DOCKER ? 300 : 120);
 
-        // UiAutomator2 server install & launch timeouts (default 20s is too low for CI)
-        options.setCapability("appium:uiautomator2ServerInstallTimeout", IS_CI ? 120000 : 30000);
-        options.setCapability("appium:uiautomator2ServerLaunchTimeout", IS_CI ? 120000 : 30000);
+        // UiAutomator2 server install & launch timeouts
+        options.setCapability("appium:uiautomator2ServerInstallTimeout", IS_CI || IS_DOCKER ? 120000 : 30000);
+        options.setCapability("appium:uiautomator2ServerLaunchTimeout", IS_CI || IS_DOCKER ? 120000 : 30000);
 
-        // App activity wait configuration
+        // App activity wait
         options.setCapability("appium:appWaitActivity",
                 "com.saucelabs.mydemoapp.android.view.activities.SplashActivity," +
                 "com.saucelabs.mydemoapp.android.view.activities.MainActivity");
-        options.setCapability("appium:appWaitDuration", IS_CI ? 90000 : 30000);
+        options.setCapability("appium:appWaitDuration", IS_CI || IS_DOCKER ? 90000 : 30000);
 
-        if (APP_PRE_INSTALLED) {
-            // CI pre-installed mode: launch by package/activity, DON'T clear app data
+        if (IS_DOCKER) {
+            // Docker mode: APK is mounted at /root/tmp, install via Appium
+            options.setApp(APK_PATH);
+            options.setFullReset(false);
+            options.setNoReset(true);
+            options.setCapability("appium:adbExecTimeout", 120000);
+        } else if (APP_PRE_INSTALLED) {
+            // CI emulator-runner mode: app pre-installed via adb
             options.setCapability("appium:appPackage", "com.saucelabs.mydemoapp.android");
             options.setCapability("appium:appActivity",
                     "com.saucelabs.mydemoapp.android.view.activities.SplashActivity");
-            // noReset=true prevents pm clear which crashes the instrumentation
             options.setFullReset(false);
             options.setNoReset(true);
             options.setCapability("appium:appWaitForLaunch", true);
             options.setCapability("appium:adbExecTimeout", 120000);
             options.setCapability("appium:skipDeviceInitialization", true);
         } else {
-            // Normal local mode: install APK via Appium
+            // Local mode
             options.setApp(APK_PATH);
             options.setFullReset(false);
             options.setNoReset(false);
@@ -79,7 +93,7 @@ public class BaseTest {
 
         try {
             AndroidDriver d = new AndroidDriver(new URL(APPIUM_URL), options);
-            d.manage().timeouts().implicitlyWait(Duration.ofSeconds(IS_CI ? 15 : 10));
+            d.manage().timeouts().implicitlyWait(Duration.ofSeconds(IS_CI || IS_DOCKER ? 15 : 10));
             driverThread.set(d);
             this.driver = d;
         } catch (MalformedURLException e) {

@@ -1,31 +1,38 @@
 # ──────────────────────────────────────────────────────────────────────
-# Dockerized Appium Test Environment
+# Dockerized Appium + Android Emulator Test Environment
 # ──────────────────────────────────────────────────────────────────────
 # Usage:
 #   docker-compose up --build --abort-on-container-exit
-#   docker-compose down
+#   docker-compose down --volumes --remove-orphans
 #
-# Reports will be available in: ./target/site/allure-maven-plugin/
+# Reports available at: ./target/site/allure-maven-plugin/index.html
 # ──────────────────────────────────────────────────────────────────────
 
 services:
-  # ── Appium Server with Android Emulator ──────────────────────────
-  appium:
-    image: appium/appium
-    container_name: appium-server
+  # ── Android Emulator + Appium Server ─────────────────────────────
+  android-emulator:
+    image: budtmo/docker-android:emulator_14.0
+    container_name: android-emulator
     privileged: true
+    devices:
+      - /dev/kvm:/dev/kvm
     ports:
       - "4723:4723"
+      - "6080:6080"
     environment:
-      - RELAXED_SECURITY=true
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_ADDITIONAL_ARGS: "--relaxed-security --allow-insecure chromedriver_autodownload"
+      DATAPARTITION: "2g"
     volumes:
-      - ./src/test/resources/apps:/apps:ro
+      - ./src/test/resources/apps:/root/tmp:ro
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:4723/status"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
+      test: ["CMD-SHELL", "curl -sf http://localhost:4723/status || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
 
   # ── Test Runner ──────────────────────────────────────────────────
   tests:
@@ -34,13 +41,14 @@ services:
       dockerfile: Dockerfile
     container_name: test-runner
     depends_on:
-      appium:
+      android-emulator:
         condition: service_healthy
     environment:
-      - APPIUM_URL=http://appium:4723
-      - DEVICE_NAME=emulator-5554
-      - APP_PATH=/apps/MyDemoApp.apk
-      - CI=true
+      APPIUM_URL: "http://android-emulator:4723"
+      DEVICE_NAME: "emulator-5554"
+      APP_PATH: "/root/tmp/MyDemoApp.apk"
+      CI: "true"
+      DOCKER_MODE: "true"
     volumes:
       - ./target:/app/target
     working_dir: /app
