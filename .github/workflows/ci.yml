@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p src/test/resources/apps
           curl -L -f --retry 3 --retry-delay 5 \
-            "https://github.com/saucelabs/my-demo-app-android/releases/download/2.7.1/mda-2.7.1-25.apk" \
+            "https://github.com/saucelabs/my-demo-app-android/releases/download/2.2.0/mda-2.2.0-25.apk" \
             -o src/test/resources/apps/MyDemoApp.apk
           ls -lh src/test/resources/apps/MyDemoApp.apk
           echo "APP_PATH=${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk" >> $GITHUB_ENV
