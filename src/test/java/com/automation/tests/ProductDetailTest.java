@@ -5,40 +5,28 @@ import com.automation.pages.ProductDetailPage;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/**
- * Tests for the Product Detail screen.
- */
 public class ProductDetailTest extends BaseTest {
 
     @Test(description = "Verify tapping a product opens its detail page with a name")
     public void testProductDetailShowsName() {
-        CatalogPage catalog = new CatalogPage(driver);
-        ProductDetailPage detail = catalog.openFirstProduct();
+        ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();
 
-        String name = detail.getProductName();
-        Assert.assertNotNull(name, "Product name should be visible on detail page");
-        Assert.assertFalse(name.isEmpty(), "Product name should not be empty");
-        System.out.println("✓ Product detail name: " + name);
+        Assert.assertTrue(detail.isPageLoaded(),
+                "Product detail page should be loaded after tapping a product");
+        Assert.assertFalse(detail.getProductName().isEmpty(), "Product name should not be empty");
     }
 
     @Test(description = "Verify the product detail page shows a price")
     public void testProductDetailShowsPrice() {
-        CatalogPage catalog = new CatalogPage(driver);
-        ProductDetailPage detail = catalog.openFirstProduct();
+        ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();
 
-        String price = detail.getProductPrice();
-        Assert.assertNotNull(price, "Price should be visible");
-        Assert.assertTrue(price.contains("$"), "Price should contain dollar sign");
-        System.out.println("✓ Product price: " + price);
+        Assert.assertTrue(detail.getProductPrice().contains("$"),
+                "Price should contain a dollar sign, got: " + detail.getProductPrice());
     }
 
-    @Test(description = "Verify user can add a product to the cart")
+    @Test(description = "Verify user can add a product to the cart from the detail screen")
     public void testAddProductToCart() {
-        CatalogPage catalog = new CatalogPage(driver);
-        ProductDetailPage detail = catalog.openFirstProduct();
-
-        detail.addToCart();
-        System.out.println("✓ Product added to cart successfully");
+        new CatalogPage(driver).openFirstProduct().addToCart();
     }
 }
 

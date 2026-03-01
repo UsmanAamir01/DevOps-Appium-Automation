@@ -10,16 +10,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Page Object — Catalog / Products listing screen.
+ * Page Object — Products screen.
  *
- * This is the home screen of MyDemoApp after launch.
+ * This is an alias for CatalogPage used by flows that start directly
+ * on the products listing without going through the menu login.
  *
  * Encapsulation:
  *  • All locators are private static final — hidden from tests.
  *  • Public methods expose user-facing actions only.
- *  • Fluent Navigation: methods that change screens return the appropriate Page Object.
+ *  • Fluent Navigation: transition methods return the next Page Object.
  */
-public class CatalogPage extends BasePage {
+public class ProductsPage extends BasePage {
 
     // ── Private locators ─────────────────────────────────────────────────
     private static final By PRODUCTS_TITLE      =
@@ -28,14 +29,8 @@ public class CatalogPage extends BasePage {
             AppiumBy.accessibilityId("Product Title");
     private static final By FIRST_PRODUCT_IMAGE =
             By.xpath("(//android.widget.ImageView[@content-desc='Product Image'])[1]");
-    private static final By MENU_BUTTON         =
-            AppiumBy.accessibilityId("View menu");
-    private static final By MENU_LOGIN_ITEM     =
-            AppiumBy.accessibilityId("Login Menu Item");
-    private static final By CART_BUTTON         =
-            AppiumBy.accessibilityId("View cart");
 
-    public CatalogPage(AndroidDriver driver) {
+    public ProductsPage(AndroidDriver driver) {
         super(driver);
     }
 
@@ -48,8 +43,8 @@ public class CatalogPage extends BasePage {
 
     // ── User actions ─────────────────────────────────────────────────────
 
-    /** Returns a list of every currently visible product name. */
-    public List<String> getProductNames() {
+    /** Returns a list of all visible product names on screen. */
+    public List<String> getAllProductNames() {
         List<WebElement> elements = wait.until(
                 ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_NAMES));
         return elements.stream()
@@ -57,9 +52,14 @@ public class CatalogPage extends BasePage {
                 .collect(Collectors.toList());
     }
 
-    /** Returns how many products are currently visible on screen. */
+    /** Returns the total number of visible products. */
     public int getProductCount() {
-        return getProductNames().size();
+        return getAllProductNames().size();
+    }
+
+    /** Returns the product name at the given zero-based index. */
+    public String getProductNameAt(int index) {
+        return getAllProductNames().get(index);
     }
 
     /**
@@ -72,21 +72,20 @@ public class CatalogPage extends BasePage {
     }
 
     /**
-     * Opens the hamburger menu and taps "Log In".
-     * Fluent Navigation → returns LoginPage.
+     * Finds a product by name and taps it.
+     * Fluent Navigation → returns ProductDetailPage.
+     *
+     * @throws IllegalArgumentException if no product with that name is found on screen.
      */
-    public LoginPage openLoginFromMenu() {
-        click(MENU_BUTTON);
-        click(MENU_LOGIN_ITEM);
-        return new LoginPage(driver);
-    }
-
-    /**
-     * Taps the cart icon in the top bar.
-     * Fluent Navigation → returns CartPage.
-     */
-    public CartPage openCart() {
-        click(CART_BUTTON);
-        return new CartPage(driver);
+    public ProductDetailPage openProductByName(String name) {
+        List<WebElement> elements = wait.until(
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(PRODUCT_NAMES));
+        for (WebElement el : elements) {
+            if (el.getText().trim().equalsIgnoreCase(name)) {
+                el.click();
+                return new ProductDetailPage(driver);
+            }
+        }
+        throw new IllegalArgumentException("Product not found on screen: " + name);
     }
 }
