@@ -38,7 +38,7 @@ jobs:
         run: |
           docker compose up -d android-emulator
           echo "Waiting for emulator + Appium to be healthy..."
-          timeout 300 bash -c 'until docker compose ps android-emulator | grep -q "healthy"; do echo "Waiting..."; sleep 10; done'
+          timeout 600 bash -c 'until docker compose ps android-emulator | grep -q "healthy"; do echo "Waiting..."; sleep 15; done'
           echo "Emulator is healthy!"
           docker compose ps
 
