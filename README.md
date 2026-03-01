@@ -43,10 +43,10 @@ src/
 
 | Tool             | Version   |
 |------------------|-----------|
-| Java JDK         | 11+       |
+| Java JDK         | 17+       |
 | Maven            | 3.8+      |
-| Node.js          | 18+       |
-| Appium Server    | 2.x / 3.x |
+| Node.js          | 20+       |
+| Appium Server    | 3.x       |
 | Android Studio   | Latest    |
 | Android Emulator | API 30+   |
 
@@ -68,7 +68,7 @@ The pipeline is defined in `.github/workflows/ci.yml` and triggers automatically
 | Step | Description |
 |------|-------------|
 | Checkout | Clones the repository |
-| Set up JDK 11 | Installs Temurin JDK 11 with Maven cache |
+| Set up JDK 17 | Installs Temurin JDK 17 with Maven cache |
 | Set up Node.js 20 | Required for Appium 3.x |
 | Install Appium | Installs Appium globally + `uiautomator2` driver |
 | Enable KVM | Enables hardware acceleration for the emulator |
