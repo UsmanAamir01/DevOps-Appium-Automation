@@ -6,14 +6,8 @@ import com.automation.pages.ProductDetailPage;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/**
- * TC-01 to TC-05 — First 5 functional test cases.
- * Each test is fully independent: the app is re-launched fresh by @BeforeMethod in BaseTest.
- */
 public class FunctionalTestCases1to5 extends BaseTest {
 
-    // ── TC-01 ─────────────────────────────────────────────────────────────
-    // Verify the app launches successfully and the catalog screen is displayed.
     @Test(description = "TC-01: App launches and catalog screen is displayed")
     public void tc01_appLaunchShowsCatalogScreen() {
         CatalogPage catalog = new CatalogPage(driver);
@@ -22,8 +16,6 @@ public class FunctionalTestCases1to5 extends BaseTest {
                 "TC-01 FAIL: Catalog screen was not displayed after app launch");
     }
 
-    // ── TC-02 ─────────────────────────────────────────────────────────────
-    // Verify the catalog screen lists at least one product with a non-empty name.
     @Test(description = "TC-02: Catalog lists products with names")
     public void tc02_catalogListsProductsWithNames() {
         CatalogPage catalog = new CatalogPage(driver);
@@ -39,8 +31,6 @@ public class FunctionalTestCases1to5 extends BaseTest {
                 "TC-02 FAIL: First product name was empty");
     }
 
-    // ── TC-03 ─────────────────────────────────────────────────────────────
-    // Verify tapping a product opens its detail page showing a name and price.
     @Test(description = "TC-03: Tapping a product opens detail page with name and price")
     public void tc03_productDetailShowsNameAndPrice() {
         CatalogPage catalog = new CatalogPage(driver);
@@ -61,8 +51,6 @@ public class FunctionalTestCases1to5 extends BaseTest {
                 "TC-03 FAIL: Product price did not contain '$', got: " + price);
     }
 
-    // ── TC-04 ─────────────────────────────────────────────────────────────
-    // Verify user can add a product to the cart from the detail screen.
     @Test(description = "TC-04: User can add a product to the cart from detail screen")
     public void tc04_addProductToCartFromDetailScreen() {
         ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();
@@ -78,8 +66,6 @@ public class FunctionalTestCases1to5 extends BaseTest {
                 "TC-04 FAIL: Cart was empty after adding a product");
     }
 
-    // ── TC-05 ─────────────────────────────────────────────────────────────
-    // Verify the cart shows the correct item count and a non-empty total price.
     @Test(description = "TC-05: Cart shows correct item count and total price")
     public void tc05_cartShowsItemCountAndTotalPrice() {
         ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();

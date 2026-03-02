@@ -12,22 +12,11 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-/**
- * Utility helpers shared across the test framework.
- */
 public class TestUtils {
 
     private TestUtils() {
-        // utility class
     }
 
-    /**
-     * Captures a screenshot and saves it under target/screenshots/.
-     *
-     * @param driver   the current AndroidDriver
-     * @param testName a label used in the file name
-     * @return the saved File, or null on failure
-     */
     public static File takeScreenshot(AndroidDriver driver, String testName) {
         try {
             File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
