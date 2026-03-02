@@ -7,51 +7,30 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable tmate SSH debugging session for Appium Inspector'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-and-test:
-    name: Build & Run Appium Tests
+    name: Build & Run Appium Tests (Hybrid Docker)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        id: setup-java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-
-      - name: Pin JAVA_HOME to JDK 17
-        run: |
-          echo "JAVA_HOME=${{ steps.setup-java.outputs.path }}" >> $GITHUB_ENV
-          echo "PATH=${{ steps.setup-java.outputs.path }}/bin:$PATH" >> $GITHUB_ENV
-
-      - name: Verify Java version
-        run: java -version && javac -version && echo "JAVA_HOME=$JAVA_HOME"
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Appium and UiAutomator2 driver
-        run: |
-          npm install -g appium@latest
-          appium driver install uiautomator2
-          appium --version
-
-      - name: Download MyDemoApp APK
-        run: |
-          mkdir -p src/test/resources/apps
-          curl -L -f --retry 3 --retry-delay 5 \
-            "https://github.com/saucelabs/my-demo-app-android/releases/download/2.2.0/mda-2.2.0-25.apk" \
-            -o src/test/resources/apps/MyDemoApp.apk
-          ls -lh src/test/resources/apps/MyDemoApp.apk
-          echo "APP_PATH=${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk" >> $GITHUB_ENV
 
       - name: Enable KVM hardware acceleration
         run: |
@@ -59,18 +38,13 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Accept Android SDK licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
-
-      - name: Build Maven project
+      - name: Build Maven project (compile check)
         run: mvn clean compile -B
 
-      - name: Run Appium tests with Android Emulator
+      - name: Run Hybrid Docker Tests (Host Emulator + Docker Appium/Tests)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 30
           arch: x86_64
           target: google_apis
           profile: pixel_5
@@ -81,32 +55,45 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           script: >
-            echo "=== Emulator Info ===" &&
+            echo "=== Host Emulator Info ===" &&
             adb devices &&
             adb shell getprop ro.build.version.sdk &&
-            echo "=== APK Info ===" &&
-            echo "APK path: $APP_PATH" &&
-            ls -lh "$APP_PATH" &&
-            echo "=== Pre-install APK on emulator ===" &&
-            adb install -r "$APP_PATH" &&
-            echo "=== Wait for emulator to settle ===" &&
+            echo "=== Exposing ADB Server for Docker ===" &&
+            adb kill-server &&
+            adb -a -P 5037 server nodaemon & ADB_PID=$! &&
+            sleep 2 &&
+            adb devices &&
+            echo "=== Launch app once to warm up (optional but helps) ===" &&
+            adb install -r src/test/resources/apps/MyDemoApp.apk &&
+            adb shell am start -n com.saucelabs.mydemoapp.android/.view.activities.SplashActivity || true &&
             sleep 5 &&
-            echo "=== Starting Appium Server ===" &&
-            nohup appium --address 127.0.0.1 --port 4723 --relaxed-security --allow-insecure chromedriver_autodownload --log-timestamp > appium.log 2>&1 & APPIUM_PID=$! &&
-            echo "Appium PID: $APPIUM_PID" &&
-            echo "=== Waiting for Appium to be ready ===" &&
-            i=1; while [ $i -le 40 ]; do if curl -sf http://127.0.0.1:4723/status > /dev/null 2>&1; then echo "Appium ready at attempt $i"; break; fi; if [ $i -eq 40 ]; then echo "Appium failed to start"; cat appium.log; exit 1; fi; i=$((i+1)); sleep 2; done &&
-            sleep 5 &&
-            echo "=== Running Maven Tests ===" &&
-            mvn test -B; TEST_EXIT=$?;
-            echo "=== Appium Log (last 100 lines) ===" ;
-            tail -100 appium.log || true;
-            kill $APPIUM_PID 2>/dev/null || true;
+            adb shell am force-stop com.saucelabs.mydemoapp.android || true &&
+            echo "=== Running Docker Appium + Tests Stack ===" &&
+            docker compose up --build --abort-on-container-exit --exit-code-from tests 2>&1 | tee docker-output.log;
+            TEST_EXIT=${PIPESTATUS[0]};
+            echo "TEST_EXIT=$TEST_EXIT" >> $GITHUB_ENV;
+            kill $ADB_PID || true;
             exit $TEST_EXIT
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
-          APP_PATH: ${{ github.workspace }}/src/test/resources/apps/MyDemoApp.apk
-          APP_PRE_INSTALLED: "true"
+
+      - name: Setup tmate session for Appium Inspector
+        if: ${{ failure() || github.event.inputs.debug == 'true' }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
+      - name: Generate Allure report (host)
+        if: always()
+        run: mvn allure:report -B 2>/dev/null || true
+
+      - name: Capture Docker logs
+        if: always()
+        run: |
+          docker compose logs appium > docker-appium.log 2>&1 || true
+          docker compose logs tests > docker-tests.log 2>&1 || true
+
+      - name: Stop Docker containers
+        if: always()
+        run: docker compose down --volumes --remove-orphans || true
 
       - name: Upload test reports
         if: always()
@@ -116,12 +103,31 @@ jobs:
           path: target/surefire-reports/
           retention-days: 14
 
-      - name: Upload Appium log
+      - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: appium-log
-          path: appium.log
+          name: allure-results
+          path: target/allure-results/
+          retention-days: 14
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin/
+          retention-days: 14
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: |
+            docker-output.log
+            docker-appium.log
+            docker-tests.log
           retention-days: 7
 
       - name: Upload failure screenshots
@@ -135,19 +141,27 @@ jobs:
       - name: Test Results Summary
         if: always()
         run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🐳 Hybrid Docker CI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Architecture: **Host Native Emulator** + **Dockerized Appium (\`appium/appium\`)** + **Dockerized Maven Tests**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -d "target/surefire-reports" ]; then
-            TOTAL=$(grep -l 'testcase' target/surefire-reports/TEST-*.xml 2>/dev/null | wc -l)
             TESTS=$(grep -r 'tests=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'tests="\K[0-9]+' | paste -sd+ | bc 2>/dev/null || echo "N/A")
             FAILURES=$(grep -r 'failures=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'failures="\K[0-9]+' | paste -sd+ | bc 2>/dev/null || echo "N/A")
             ERRORS=$(grep -r 'errors=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'errors="\K[0-9]+' | paste -sd+ | bc 2>/dev/null || echo "N/A")
             echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
             echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Test Suites | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-            echo "| Total Tests | $TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Tests | $TESTS |" >> $GITHUB_STEP_SUMMARY
             echo "| Failures | $FAILURES |" >> $GITHUB_STEP_SUMMARY
             echo "| Errors | $ERRORS |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ No Surefire reports found." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No test reports found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if tests failed
+        if: always()
+        run: |
+          if [ "${{ env.TEST_EXIT }}" != "0" ] && [ "${{ env.TEST_EXIT }}" != "" ]; then
+            echo "Tests failed with exit code ${{ env.TEST_EXIT }}"
+            exit 1
           fi

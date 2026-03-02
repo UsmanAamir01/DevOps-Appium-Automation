@@ -1,0 +1,60 @@
+# ──────────────────────────────────────────────────────────────────────
+# Hybrid Docker Architecture: Appium and Tests in Docker, Emulator on Host
+# ──────────────────────────────────────────────────────────────────────
+# This architecture solves the Windows WSL2 / KVM nested virtualization
+# limitations by running the emulator natively on the host machine, while
+# fully containerizing Appium and the Test Runner.
+#
+# Usage:
+#   1. Start your Android Emulator on the host (e.g., via Android Studio)
+#   2. Run: docker compose up --build --abort-on-container-exit --exit-code-from tests
+# ──────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Appium Server (Containerized) ────────────────────────────────
+  appium:
+    image: appium/appium:v2.11.2
+    container_name: appium-server
+    environment:
+      # Tell Appium's ADB to connect to the host machine's ADB daemon
+      - ANDROID_ADB_SERVER_ADDRESS=host.docker.internal
+      - ANDROID_ADB_SERVER_PORT=5037
+    ports:
+      - "4723:4723"
+    # Wait for the host's emulator to be available
+    command: >
+      sh -c "
+      echo 'Waiting for host ADB device...' &&
+      adb connect host.docker.internal:5554 || true &&
+      until adb devices | grep -v 'List of devices attached' | grep 'device'; do echo 'Waiting...'; sleep 2; done &&
+      echo 'Device found! Starting Appium...' &&
+      appium --allow-insecure chromedriver_autodownload --relaxed-security
+      "
+    # Map host.docker.internal to the host IP
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./src/test/resources/apps:/root/tmp:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4723/status || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # ── Maven Test Runner (Containerized) ────────────────────────────
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: test-runner
+    depends_on:
+      appium:
+        condition: service_healthy
+    environment:
+      APPIUM_URL: "http://appium:4723"
+      DEVICE_NAME: "emulator-5554"
+      APP_PATH: "/root/tmp/MyDemoApp.apk"
+      CI: "true"
+    volumes:
+      - ./target:/app/target
