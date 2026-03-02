@@ -12,16 +12,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 
-/**
- * Base test class for all Appium tests.
- * <p>
- * Supports two modes:
- * <ul>
- *   <li><b>Local</b> — default (Appium at localhost:4723, emulator-5554)</li>
- *   <li><b>CI</b>    — set env var CI=true (longer timeouts, same Appium URL)</li>
- * </ul>
- * Uses ThreadLocal for thread-safe parallel execution.
- */
 public class BaseTest {
 
     private static final boolean IS_CI = "true".equalsIgnoreCase(System.getenv("CI"));
@@ -52,19 +42,12 @@ public class BaseTest {
         options.setDeviceName(DEVICE_NAME);
         options.setApp(APK_PATH);
         options.setAutoGrantPermissions(true);
-
-
-        // Reset behaviour: clear app data but don't uninstall/reinstall
         options.setFullReset(false);
         options.setNoReset(IS_CI);
-
-        // Timeouts — generous for CI, snappy for local
         options.setCapability("appium:newCommandTimeout", IS_CI ? 300 : 120);
         options.setCapability("appium:uiautomator2ServerInstallTimeout", IS_CI ? 120000 : 30000);
         options.setCapability("appium:uiautomator2ServerLaunchTimeout", IS_CI ? 120000 : 30000);
         options.setCapability("appium:adbExecTimeout", IS_CI ? 120000 : 30000);
-
-        // Wait for app to launch
         options.setCapability("appium:appWaitActivity",
                 "com.saucelabs.mydemoapp.android.view.activities.SplashActivity," +
                 "com.saucelabs.mydemoapp.android.view.activities.MainActivity");

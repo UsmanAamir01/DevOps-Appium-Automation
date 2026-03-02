@@ -8,10 +8,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
 
-/**
- * Manages the AndroidDriver lifecycle.
- * Centralizes driver creation so every test reuses the same configuration.
- */
 public class AppDriver {
 
     private static final String APPIUM_URL = "http://127.0.0.1:4723";
@@ -27,12 +23,8 @@ public class AppDriver {
     }
 
     private AppDriver() {
-        // utility class
     }
 
-    /**
-     * Creates and returns a configured AndroidDriver instance.
-     */
     public static AndroidDriver createDriver() {
         try {
             File apk = new File(APK_PATH);

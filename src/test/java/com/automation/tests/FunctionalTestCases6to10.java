@@ -8,17 +8,11 @@ import com.automation.pages.ProductDetailPage;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/**
- * TC-06 to TC-10 — Second set of 5 functional test cases.
- * Each test is fully independent: the app is re-launched fresh by @BeforeMethod in BaseTest.
- */
 public class FunctionalTestCases6to10 extends BaseTest {
 
     private static final String VALID_USER = "bob@example.com";
     private static final String VALID_PASS = "10203040";
 
-    // ── TC-06 ─────────────────────────────────────────────────────────────
-    // Verify the cart shows "No Items" when opened without adding any product.
     @Test(description = "TC-06: Cart shows empty state when no product has been added")
     public void tc06_cartIsEmptyOnFreshLaunch() {
         CatalogPage catalog = new CatalogPage(driver);
@@ -34,8 +28,6 @@ public class FunctionalTestCases6to10 extends BaseTest {
                 "TC-06 FAIL: Cart item count should be 0 on empty cart");
     }
 
-    // ── TC-07 ─────────────────────────────────────────────────────────────
-    // Verify the Login page is displayed when a user proceeds to checkout from the cart.
     @Test(description = "TC-07: Login page is displayed when proceeding to checkout")
     public void tc07_loginPageShownOnProceedToCheckout() {
         ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();
@@ -52,8 +44,6 @@ public class FunctionalTestCases6to10 extends BaseTest {
                 "TC-07 FAIL: Login page was not displayed after tapping Proceed To Checkout");
     }
 
-    // ── TC-08 ─────────────────────────────────────────────────────────────
-    // Verify a user can log in with valid credentials and reaches the checkout screen.
     @Test(description = "TC-08: User logs in with valid credentials and reaches checkout")
     public void tc08_validLoginLeadsToCheckoutScreen() {
         ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();
@@ -68,8 +58,6 @@ public class FunctionalTestCases6to10 extends BaseTest {
                 "TC-08 FAIL: Checkout page was not displayed after successful login");
     }
 
-    // ── TC-09 ─────────────────────────────────────────────────────────────
-    // Verify the checkout page allows all shipping address fields to be filled.
     @Test(description = "TC-09: Checkout page accepts a complete shipping address")
     public void tc09_checkoutPageAcceptsShippingAddress() {
         ProductDetailPage detail = new CatalogPage(driver).openFirstProduct();
@@ -87,8 +75,6 @@ public class FunctionalTestCases6to10 extends BaseTest {
                 "TC-09 FAIL: Checkout page disappeared after filling shipping address");
     }
 
-    // ── TC-10 ─────────────────────────────────────────────────────────────
-    // E2E: Login via menu → catalog shows products → open product → verify detail screen.
     @Test(description = "TC-10: E2E flow — menu login, catalog browse, product detail verified")
     public void tc10_endToEndLoginAndBrowseFlow() {
         CatalogPage catalog = new CatalogPage(driver);

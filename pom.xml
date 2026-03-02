@@ -47,7 +47,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Allure TestNG integration for rich test reports -->
         <dependency>
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-testng</artifactId>
@@ -83,7 +82,6 @@
                 </dependencies>
             </plugin>
 
-            <!-- Allure Maven Plugin for report generation -->
             <plugin>
                 <groupId>io.qameta.allure</groupId>
                 <artifactId>allure-maven</artifactId>
